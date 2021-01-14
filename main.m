@@ -4,7 +4,7 @@
 %            assisted highly constrained expensive optimization[J]. Information Sciences, 2019, 471: 80-96.
 %
 % ruwangjiao@gmailcom  
-% Last update March 3, 2020
+% Last update January 14, 2021
 
 clear all;
 clc;
@@ -13,7 +13,7 @@ global Dmodel
 global DB
 global integral_data
 
-problem = 24;
+problem = 3;
 fprintf('G%s problem \n', num2str(problem));
 [n, lu, AA]     = cec2006Suite(problem);
 initial_popsize = 11*n - 1;
@@ -56,6 +56,7 @@ while FES <= MaxFES
     Total_y_sample = [];
     Total_x_sample = [];
     numm  = (2*num_equal + num_inequal + 1);
+    
     % Training models
     for i = 1:Nc
         X_sample(i).sample = DB.Total_x(index2(i).index1, :);
@@ -75,47 +76,13 @@ while FES <= MaxFES
     F    = 0.5;
     CR   = 0.9;
     Maxt = 500;
-    [offSubpop,~,~] = DE_generate_offspring(NP, lu, n, F, CR, opt, Succ_best_sumv, num_equal, num_inequal, centers, best_feasi_flag, Maxt);
-   
-   %% constrained expected improvement
-    for i = 1:size(offSubpop, 1)
-        Tem_distance    = sum((repmat(offSubpop(i,:), size(centers, 1), 1) - centers).^2, 2);
-        Distance        = Tem_distance';
-        [~, index_dist] = min(Distance); 
-        switch best_feasi_flag
-            case 0
-                % infeasible case
-                g_min = min(DB.G_value);
-                integral_data.x   = offSubpop(i, :);
-                integral_data.Num = 2*num_equal + num_inequal;
-                term1 = integral(@(z) Fai(z), 0, g_min);
-                improv_y = 0;
-                PI_total = 1;
-                for j = 2:(2*num_equal + num_inequal +1 )
-                    probImp1(j-1) = probImp_dace(offSubpop(i,:), improv_y, Dmodel(index_dist, j).dmodel);
-                    PI_total      = PI_total*probImp1(j-1);
-                end
-                term2    = g_min*PI_total;
-                CEI(i,1) = term1 - term2;
-            case 1
-                % feasible case
-                improv_y = 0;
-                ExpImp1  = ExpImp_dace(offSubpop(i, :), opt.y, Dmodel(index_dist, 1).dmodel);
-                PI_total = 1;
-                for j = 2:(2*num_equal + num_inequal + 1)
-                    probImp1(j - 1) = probImp_dace(offSubpop(i, :), improv_y, Dmodel(index_dist, j).dmodel);
-                    PI_total        = PI_total*probImp1(j - 1);
-                end
-                CEI(i, 1) = ExpImp1*PI_total;
-        end
-    end
-    [~, Pro_index]                         = max(CEI);
-    Pro_ind                                = offSubpop(Pro_index, :);
-    Succ_ind(gen, :)                       = Pro_ind;
-    [addfit, addh1, addg, addf]            = fitness(Pro_ind, problem, delta_equal, AA);
+    [offSubpop,~,bestind] = DE_generate_offspring(NP, lu, n, F, CR, opt, Succ_best_sumv, num_equal, num_inequal, centers, best_feasi_flag, Maxt);
+  
+    Succ_ind(gen, :)                       = bestind;
+    [addfit, addh1, addg, addf]            = fitness(bestind, problem, delta_equal, AA);
     [addh, num_inequal, num_equal, addfit] = correct_obj_con_equ(addh1,addg,addfit);
     [~, ~, ~, Tem_addfit]                  = correct_obj_con(addh1, addg, addfit);
-    DB                                     = update_database(Pro_ind, addg, addh, addf, addfit, num_inequal, delta_equal, DB);
+    DB                                     = update_database(bestind, addg, addh, addf, addfit, num_inequal, delta_equal, DB);
     FES = FES+1;
     [opt, Succ_best_sumv, best_feasi_flag] = BestOne_2(DB.Total_x, DB.Total_fit, num_inequal, num_equal, delta_equal, FES, Succ_best_sumv);  
     gen = gen + 1;
