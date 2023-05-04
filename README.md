@@ -1,5 +1,5 @@
 # A complete expected improvement criterion for Gaussian process assisted highly constrained expensive optimization
-This is the CEI code for solving expensive constrained optimization problems.
+This is the CEI code for solving expensive constrained optimization problems. We provide both the Python and Matlab versions.
 
 # Acknowledge
 Please kindly cite this paper in your publications if it helps your research:
